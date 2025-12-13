@@ -10,9 +10,10 @@
             --bg-secondary: #292a2d;
             --text-primary: #e8eaed;
             --text-muted: #9aa0a6;
-            --accent: #8ab4f8; /* Google Blue */
+            --accent: #8ab4f8;
             --danger: #f28b82;
             --border: #5f6368;
+            --success: #81c995;
         }
 
         body {
@@ -32,7 +33,6 @@
             justify-content: center;
             align-items: center;
             margin-bottom: 12px;
-            position: relative;
         }
 
         h1 {
@@ -44,7 +44,6 @@
             color: var(--accent);
         }
 
-        /* Input Container */
         .input-wrapper {
             position: relative;
             flex: 1;
@@ -59,20 +58,16 @@
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 16px;
-            padding-top: 45px; /* Space for the clear button */
+            padding-top: 45px;
             font-size: 14px;
             line-height: 1.5;
             resize: none;
             outline: none;
-            appearance: none;
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
         }
 
-        textarea:focus {
-            border-color: var(--accent);
-        }
+        textarea:focus { border-color: var(--accent); }
 
-        /* The Clear Button */
         #clearBtn {
             position: absolute;
             top: 10px;
@@ -87,21 +82,12 @@
             cursor: pointer;
             backdrop-filter: blur(4px);
             z-index: 10;
-            transition: all 0.2s ease;
         }
 
-        #clearBtn:active {
-            background-color: var(--danger);
-            color: #202124;
-            border-color: var(--danger);
-        }
-
-        /* Action Area */
         .actions {
             margin-top: 16px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
         }
 
         button.compile-btn {
@@ -114,21 +100,17 @@
             font-size: 16px;
             width: 100%;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            touch-action: manipulation;
         }
 
-        button.compile-btn:active {
-            transform: scale(0.98);
-            filter: brightness(0.9);
-        }
+        button.compile-btn:active { transform: scale(0.98); }
 
         .tips {
             text-align: center;
             font-size: 12px;
             color: var(--text-muted);
             margin-top: 12px;
-            padding: 10px;
             background: rgba(255,255,255,0.05);
+            padding: 10px;
             border-radius: 8px;
         }
     </style>
@@ -150,86 +132,60 @@
 
     <div class="tips">
         <strong>Android Tip:</strong> Long-press inside Chegg editor > Paste.<br>
-        (Do not use the Gboard paste shortcut)
+        (Do not use Gboard paste)
     </div>
 
-    <!-- Hidden Stealth Container for Copying -->
     <div id="stealth-clipboard" style="position: absolute; left: -9999px; top: 0;" contenteditable="true"></div>
 
 <script>
-    /**
-     * CONFIGURATION
-     * Optimized for minimal footprint to avoid detection.
-     */
     const config = {
         mathTag: 'span',
         mathAttr: 'data-math-type="mhchem"',
-        // Removing specific LaTeX commands that cause Chegg render errors
-        unsupported: ['\\mathbf', '\\mathrm', '\\left', '\\right', '\\phantom']
+        // Removing \right only if it's NOT followed by "arrow"
+        unsupported: ['\\mathbf', '\\mathrm', '\\phantom'] 
+        // Note: I removed \\left and \\right from here to handle them manually in the sanitizer
     };
 
-    /**
-     * UI FUNCTION: Clear Input
-     */
     function clearInput() {
-        const textArea = document.getElementById('inputParams');
-        textArea.value = "";
-        textArea.focus();
-        // Visual feedback
-        const btn = document.getElementById('clearBtn');
-        const originalText = btn.innerText;
-        btn.innerText = "CLEARED";
-        setTimeout(() => btn.innerText = originalText, 1000);
+        document.getElementById('inputParams').value = "";
+        document.getElementById('inputParams').focus();
     }
 
-    /**
-     * CORE FUNCTION: Processing & Copying
-     */
     function processAndCopy() {
         const input = document.getElementById('inputParams').value;
         if (!input.trim()) return alert("Input is empty.");
 
-        // 1. PRE-CLEANING (Regex Pipeline)
-        // Removes user-specified headers to clean up the output
+        // 1. PRE-CLEANING
         let cleanText = input
-            .replace(/^### Step \d+:\s*/gm, '### ') // Keep Title, remove "Step X:"
+            .replace(/^### Step \d+:\s*/gm, '### ') 
             .replace(/^\([a-z]\) Action\s*$/gmi, '')
             .replace(/^\([a-z]\) Calculation\s*$/gmi, '')
             .replace(/^\([a-z]\) Explanation\s*$/gmi, '');
 
         // 2. SEGMENTATION
-        // Split text from code blocks
         const segments = cleanText.split(/(```latex[\s\S]*?```)/g);
         let htmlBuffer = "";
 
         segments.forEach(segment => {
             if (segment.startsWith("```latex")) {
-                // --- BLOCK MATH ---
                 let content = segment.replace(/^```latex\s*/, '').replace(/\s*```$/, '');
                 content = sanitizeLatex(content);
                 
-                // Using standard DIV with minimal inline styles for safety
                 htmlBuffer += `
                     <div style="margin-top: 30px; margin-bottom: 10px; text-align: left;">
                         <${config.mathTag} ${config.mathAttr}>${content}</${config.mathTag}>
                     </div>`;
             } else {
-                // --- TEXT & INLINE MATH ---
                 let processed = segment
-                    // Bold
                     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    // Headers: Zero margin to prevent huge gaps
                     .replace(/^### (.*$)/gm, '<h3 style="margin: 0; padding-bottom: 4px;">$1</h3>')
-                    // Inline Math
                     .replace(/\$([^$]+?)\$/g, (m, math) => 
                         `<${config.mathTag} ${config.mathAttr}>${sanitizeLatex(math)}</${config.mathTag}>`
                     );
                 
-                // Paragraph processing
                 processed = processed.split('\n\n').map(p => {
                     if (!p.trim()) return '';
                     if (p.includes('<h3')) return p;
-                    // Standard P tag with controlled margins
                     return `<p style="margin-top: 0; margin-bottom: 1em;">${p.replace(/\n/g, '<br>')}</p>`;
                 }).join('');
                 
@@ -237,51 +193,53 @@
             }
         });
 
-        // 3. STEALTH COPY EXECUTION
-        // Uses legacy execCommand for maximum Android compatibility
+        // 3. STEALTH COPY
         const hiddenDiv = document.getElementById('stealth-clipboard');
-        hiddenDiv.innerHTML = htmlBuffer; // Inject HTML
+        hiddenDiv.innerHTML = htmlBuffer;
         
         const range = document.createRange();
         range.selectNodeContents(hiddenDiv);
-        
         const selection = window.getSelection();
         selection.removeAllRanges();
         selection.addRange(range);
 
         try {
-            const successful = document.execCommand('copy');
-            if (successful) {
-                // Provide haptic/visual feedback if possible
-                if (navigator.vibrate) navigator.vibrate(50);
-                const btn = document.querySelector('.compile-btn');
-                const prevText = btn.innerText;
-                btn.innerText = "COPIED ✅";
-                btn.style.backgroundColor = "var(--success)";
-                setTimeout(() => btn.innerText = prevText, 2000);
-            } else {
-                alert("Clipboard access denied by Android. Try Chrome.");
-            }
+            document.execCommand('copy');
+            const btn = document.querySelector('.compile-btn');
+            btn.innerText = "COPIED ✅";
+            btn.style.backgroundColor = "var(--success)";
+            setTimeout(() => {
+                btn.innerText = "CONVERT & COPY";
+                btn.style.backgroundColor = "var(--accent)";
+            }, 2000);
         } catch (err) {
-            alert("Error: " + err);
+            alert("Clipboard error: " + err);
         }
-
-        // Cleanup to prevent memory leaks or detection
         selection.removeAllRanges();
-        // We leave the div content for a split second just in case, then could clear it, 
-        // but leaving it in a hidden div is harmless for detection.
     }
 
     /**
-     * HELPER: Latex Sanitizer
-     * Ensures compatibility with Chegg's specific renderer
+     * UPDATED SANITIZER
+     * Fixes the \rightarrow issue by being careful with \right replacement
      */
     function sanitizeLatex(latex) {
         let clean = latex;
-        // Remove known unsupported commands
-        config.unsupported.forEach(cmd => clean = clean.replaceAll(cmd, ''));
-        // Escape percentage signs if not already escaped
+
+        // 1. Remove standard unsupported commands safely
+        config.unsupported.forEach(cmd => {
+            clean = clean.split(cmd).join(''); 
+        });
+
+        // 2. Handle \left and \right specifically
+        // We replace \left and \right with empty string ONLY if they are brackets/parentheses logic
+        // But we MUST preserve \rightarrow
+        // Regex Lookahead: Replace \right only if it is NOT followed by 'arrow'
+        clean = clean.replace(/\\right(?!arrow)/g, '');
+        clean = clean.replace(/\\left/g, '');
+
+        // 3. Escape percentage signs
         clean = clean.replace(/(?<!\\)%/g, '\\%');
+
         return clean.trim();
     }
 </script>
