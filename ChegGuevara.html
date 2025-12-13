@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ChegGuevara</title>
+    <style>
+        :root {
+            --bg-primary: #202124;
+            --bg-secondary: #292a2d;
+            --text-primary: #e8eaed;
+            --text-muted: #9aa0a6;
+            --accent: #8ab4f8; /* Google Blue */
+            --danger: #f28b82;
+            --border: #5f6368;
+        }
+
+        body {
+            font-family: 'Roboto', -apple-system, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+
+        .header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 1.1rem;
+            margin: 0;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        /* Input Container */
+        .input-wrapper {
+            position: relative;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        textarea {
+            flex: 1;
+            background-color: var(--bg-secondary);
+            color: #fff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            padding-top: 45px; /* Space for the clear button */
+            font-size: 14px;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+            appearance: none;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        textarea:focus {
+            border-color: var(--accent);
+        }
+
+        /* The Clear Button */
+        #clearBtn {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+            z-index: 10;
+            transition: all 0.2s ease;
+        }
+
+        #clearBtn:active {
+            background-color: var(--danger);
+            color: #202124;
+            border-color: var(--danger);
+        }
+
+        /* Action Area */
+        .actions {
+            margin-top: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        button.compile-btn {
+            background-color: var(--accent);
+            color: #202124;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 16px;
+            width: 100%;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            touch-action: manipulation;
+        }
+
+        button.compile-btn:active {
+            transform: scale(0.98);
+            filter: brightness(0.9);
+        }
+
+        .tips {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 12px;
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>ChegGuevara</h1>
+    </div>
+    
+    <div class="input-wrapper">
+        <button id="clearBtn" onclick="clearInput()">CLEAR</button>
+        <textarea id="inputParams" placeholder="Paste ChatGPT solution here..."></textarea>
+    </div>
+    
+    <div class="actions">
+        <button class="compile-btn" onclick="processAndCopy()">CONVERT & COPY</button>
+    </div>
+
+    <div class="tips">
+        <strong>Android Tip:</strong> Long-press inside Chegg editor > Paste.<br>
+        (Do not use the Gboard paste shortcut)
+    </div>
+
+    <!-- Hidden Stealth Container for Copying -->
+    <div id="stealth-clipboard" style="position: absolute; left: -9999px; top: 0;" contenteditable="true"></div>
+
+<script>
+    /**
+     * CONFIGURATION
+     * Optimized for minimal footprint to avoid detection.
+     */
+    const config = {
+        mathTag: 'span',
+        mathAttr: 'data-math-type="mhchem"',
+        // Removing specific LaTeX commands that cause Chegg render errors
+        unsupported: ['\\mathbf', '\\mathrm', '\\left', '\\right', '\\phantom']
+    };
+
+    /**
+     * UI FUNCTION: Clear Input
+     */
+    function clearInput() {
+        const textArea = document.getElementById('inputParams');
+        textArea.value = "";
+        textArea.focus();
+        // Visual feedback
+        const btn = document.getElementById('clearBtn');
+        const originalText = btn.innerText;
+        btn.innerText = "CLEARED";
+        setTimeout(() => btn.innerText = originalText, 1000);
+    }
+
+    /**
+     * CORE FUNCTION: Processing & Copying
+     */
+    function processAndCopy() {
+        const input = document.getElementById('inputParams').value;
+        if (!input.trim()) return alert("Input is empty.");
+
+        // 1. PRE-CLEANING (Regex Pipeline)
+        // Removes user-specified headers to clean up the output
+        let cleanText = input
+            .replace(/^### Step \d+:\s*/gm, '### ') // Keep Title, remove "Step X:"
+            .replace(/^\([a-z]\) Action\s*$/gmi, '')
+            .replace(/^\([a-z]\) Calculation\s*$/gmi, '')
+            .replace(/^\([a-z]\) Explanation\s*$/gmi, '');
+
+        // 2. SEGMENTATION
+        // Split text from code blocks
+        const segments = cleanText.split(/(```latex[\s\S]*?```)/g);
+        let htmlBuffer = "";
+
+        segments.forEach(segment => {
+            if (segment.startsWith("```latex")) {
+                // --- BLOCK MATH ---
+                let content = segment.replace(/^```latex\s*/, '').replace(/\s*```$/, '');
+                content = sanitizeLatex(content);
+                
+                // Using standard DIV with minimal inline styles for safety
+                htmlBuffer += `
+                    <div style="margin-top: 30px; margin-bottom: 10px; text-align: left;">
+                        <${config.mathTag} ${config.mathAttr}>${content}</${config.mathTag}>
+                    </div>`;
+            } else {
+                // --- TEXT & INLINE MATH ---
+                let processed = segment
+                    // Bold
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    // Headers: Zero margin to prevent huge gaps
+                    .replace(/^### (.*$)/gm, '<h3 style="margin: 0; padding-bottom: 4px;">$1</h3>')
+                    // Inline Math
+                    .replace(/\$([^$]+?)\$/g, (m, math) => 
+                        `<${config.mathTag} ${config.mathAttr}>${sanitizeLatex(math)}</${config.mathTag}>`
+                    );
+                
+                // Paragraph processing
+                processed = processed.split('\n\n').map(p => {
+                    if (!p.trim()) return '';
+                    if (p.includes('<h3')) return p;
+                    // Standard P tag with controlled margins
+                    return `<p style="margin-top: 0; margin-bottom: 1em;">${p.replace(/\n/g, '<br>')}</p>`;
+                }).join('');
+                
+                htmlBuffer += processed;
+            }
+        });
+
+        // 3. STEALTH COPY EXECUTION
+        // Uses legacy execCommand for maximum Android compatibility
+        const hiddenDiv = document.getElementById('stealth-clipboard');
+        hiddenDiv.innerHTML = htmlBuffer; // Inject HTML
+        
+        const range = document.createRange();
+        range.selectNodeContents(hiddenDiv);
+        
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                // Provide haptic/visual feedback if possible
+                if (navigator.vibrate) navigator.vibrate(50);
+                const btn = document.querySelector('.compile-btn');
+                const prevText = btn.innerText;
+                btn.innerText = "COPIED ✅";
+                btn.style.backgroundColor = "var(--success)";
+                setTimeout(() => btn.innerText = prevText, 2000);
+            } else {
+                alert("Clipboard access denied by Android. Try Chrome.");
+            }
+        } catch (err) {
+            alert("Error: " + err);
+        }
+
+        // Cleanup to prevent memory leaks or detection
+        selection.removeAllRanges();
+        // We leave the div content for a split second just in case, then could clear it, 
+        // but leaving it in a hidden div is harmless for detection.
+    }
+
+    /**
+     * HELPER: Latex Sanitizer
+     * Ensures compatibility with Chegg's specific renderer
+     */
+    function sanitizeLatex(latex) {
+        let clean = latex;
+        // Remove known unsupported commands
+        config.unsupported.forEach(cmd => clean = clean.replaceAll(cmd, ''));
+        // Escape percentage signs if not already escaped
+        clean = clean.replace(/(?<!\\)%/g, '\\%');
+        return clean.trim();
+    }
+</script>
+
+</body>
+</html>
