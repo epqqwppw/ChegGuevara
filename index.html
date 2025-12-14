@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChegGuevara | Cosmic</title>
+    <title>ChegGuevara | Architect</title>
     <style>
         :root {
             --bg-deep: #05070a;
@@ -44,7 +44,6 @@
             overflow: hidden;
         }
 
-        /* Procedural Star Fields */
         .stars {
             position: absolute;
             top: 0;
@@ -102,7 +101,7 @@
             text-shadow: 0 0 20px rgba(100, 255, 218, 0.3);
         }
 
-        /* --- HOLOGRAPHIC INPUT CONTAINER --- */
+        /* --- INPUT UI --- */
         .input-wrapper {
             position: relative;
             flex: 1;
@@ -110,8 +109,6 @@
             flex-direction: column;
             min-height: 350px;
             margin-bottom: 25px;
-            
-            /* Glassmorphism */
             background: var(--glass-panel);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
@@ -120,7 +117,6 @@
             box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
 
-        /* The Event Horizon Border Effect */
         .input-wrapper::after {
             content: '';
             position: absolute;
@@ -151,15 +147,15 @@
             border: none;
             padding: 20px;
             padding-top: 50px;
-            font-family: 'Roboto Mono', monospace; /* Monospace for coding feel */
+            font-family: 'Roboto Mono', monospace;
             font-size: 14px;
             line-height: 1.6;
             resize: none;
             outline: none;
             min-height: 200px;
+            white-space: pre-wrap;
         }
 
-        /* Clear Button (HUD Style) */
         #clearBtn {
             position: absolute;
             top: 15px;
@@ -184,7 +180,7 @@
             box-shadow: 0 0 10px var(--accent-glow);
         }
 
-        /* --- ACTION BUTTON --- */
+        /* --- BUTTONS --- */
         .actions {
             margin-bottom: 30px;
             flex-shrink: 0;
@@ -227,11 +223,8 @@
             left: 100%;
         }
 
-        button.compile-btn:active {
-            transform: translateY(1px);
-        }
+        button.compile-btn:active { transform: translateY(1px); }
 
-        /* --- STATUS & STEALTH --- */
         .status-bar {
             text-align: center;
             font-family: 'Roboto Mono', monospace;
@@ -239,6 +232,7 @@
             color: var(--text-dim);
             letter-spacing: 1px;
             opacity: 0.6;
+            margin-bottom: 20px;
         }
 
         #stealth-clipboard {
@@ -252,7 +246,6 @@
 </head>
 <body>
 
-    <!-- BACKGROUND LAYERS -->
     <div class="cosmos">
         <div class="nebula"></div>
         <div class="stars"></div>
@@ -276,15 +269,15 @@
     </div>
 
     <div class="status-bar">
-        ENCRYPTED CONNECTION // STEALTH ACTIVE
+        EQUATION ENGINE: ONLINE // STEALTH: ACTIVE
     </div>
 
     <div id="stealth-clipboard" contenteditable="true"></div>
 
 <script>
     /**
-     * CHEGGUEVARA | COSMIC EDITION
-     * Production Grade v4.1
+     * CHEGGUEVARA v5.1 | Architect Edition
+     * Features: Strict Equation Renderer (align*) output.
      */
 
     const CONFIG = {
@@ -312,27 +305,22 @@
         }
 
         try {
-            // Parsing
             const cleanHtml = parseInput(rawInput);
             const clipboardDiv = document.getElementById('stealth-clipboard');
             clipboardDiv.innerHTML = cleanHtml;
 
-            // Selection
             const range = document.createRange();
             range.selectNodeContents(clipboardDiv);
             const selection = window.getSelection();
             selection.removeAllRanges();
             selection.addRange(range);
 
-            // Execution
             const success = document.execCommand('copy');
 
             if (success) {
                 flashButton("PAYLOAD COPIED ✅", "var(--success)");
                 selection.removeAllRanges();
                 clipboardDiv.innerHTML = ""; 
-                
-                // Self-Destruct / Refresh
                 setTimeout(() => { window.location.reload(); }, 1200);
             } else {
                 throw new Error("Execution Blocked");
@@ -343,32 +331,72 @@
         }
     }
 
-    /* --- PARSING ENGINE (v4.0 Logic) --- */
+    /* --- PARSING ENGINE --- */
     
     function parseInput(input) {
-        // Hygiene Strip
+        // 1. Header Hygiene
         let text = input
             .replace(/^### Step \d+:\s*/gm, '### ') 
             .replace(/^\([a-z]\) Action\s*$/gmi, '')
             .replace(/^\([a-z]\) Calculation\s*$/gmi, '')
             .replace(/^\([a-z]\) Explanation\s*$/gmi, '');
 
-        const segments = text.split(/(```latex[\s\S]*?```)/g);
+        // 2. Advanced Segmentation (Matches ```latex AND $$ blocks)
+        const splitRegex = /((?:```latex[\s\S]*?```)|(?:\$\$[\s\S]*?\$\$))/g;
+        
+        const segments = text.split(splitRegex);
         let outputBuffer = "";
 
         segments.forEach(segment => {
-            if (segment.startsWith("```latex")) {
-                let content = segment.replace(/^```latex\s*/, '').replace(/\s*```$/, '');
+            // DETECT CALCULATION BLOCKS
+            if (segment.startsWith("```latex") || segment.startsWith("$$")) {
+                let content = segment
+                    .replace(/^```latex\s*/, '').replace(/\s*```$/, '')
+                    .replace(/^\$\$\s*/, '').replace(/\s*\$\$$/, '');
+                
                 content = sanitizeLatex(content);
+
+                // --- EQUATION RENDERER LOGIC ---
+                // Convert to \begin{align*} block if it's not already
+                if (!content.includes('\\begin{')) {
+                    content = convertToAlignBlock(content);
+                }
+
+                // USE <P> TAG instead of <DIV> for Chegg Editor Compatibility
+                // This mimics the native paragraph structure required by the Equation tool
                 outputBuffer += `
-                    <div style="margin-top: 30px; margin-bottom: 10px; text-align: left;">
+                    <p style="text-align: left; margin-top: 1.5em; margin-bottom: 1.5em;">
                         <${CONFIG.mathTag} ${CONFIG.mathAttr}>${content}</${CONFIG.mathTag}>
-                    </div>`;
-            } else {
+                    </p>`;
+            } 
+            else {
                 outputBuffer += parseTextSegment(segment);
             }
         });
         return outputBuffer;
+    }
+
+    /**
+     * Converts raw multi-line equations into \begin{align*} ... \end{align*}
+     * This format is EXACTLY what the Chegg Equation Renderer produces.
+     */
+    function convertToAlignBlock(rawContent) {
+        const lines = rawContent.split('\n');
+        let alignedLines = lines.map(line => {
+            let trimLine = line.trim();
+            if (!trimLine) return '';
+
+            // Auto-Align at Equals
+            if (trimLine.startsWith('=')) {
+                return '&' + trimLine; 
+            }
+            else if (trimLine.includes('=')) {
+                return trimLine.replace('=', '&=');
+            }
+            return trimLine;
+        }).filter(line => line !== '');
+
+        return `\\begin{align*}\n${alignedLines.join(' \\\\\n')}\n\\end{align*}`;
     }
 
     function parseTextSegment(segment) {
@@ -410,8 +438,10 @@
             } else {
                 while (listStack.length > 0) closeList();
                 let cleanLine = line.trim();
+                
                 if (cleanLine.startsWith('### ')) {
-                    html += `<h3 style="margin: 0; padding-bottom: 4px;">${cleanLine.replace('### ', '')}</h3>`;
+                    const headerContent = cleanLine.replace('### ', '');
+                    html += `<h3 style="margin: 0; padding-bottom: 4px;">${formatInline(headerContent)}</h3>`;
                 } else {
                     html += `<p style="margin-top: 0; margin-bottom: 1em;">${formatInline(cleanLine)}</p>`;
                 }
@@ -443,12 +473,11 @@
     function flashButton(text, bg) {
         const btn = document.querySelector('.compile-btn');
         const originalText = btn.innerText;
-        const originalBg = getComputedStyle(btn).background; // get processed gradient
+        const originalBg = getComputedStyle(btn).background;
         
         btn.innerText = text;
         btn.style.background = bg;
         
-        // No revert logic needed as page refreshes, but standard hygiene:
         setTimeout(() => {
             btn.innerText = originalText;
             btn.style.background = originalBg;
