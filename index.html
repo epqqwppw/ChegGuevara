@@ -3,162 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChegGuevara</title>
+    <title>ChegGuevara | Cosmic</title>
     <style>
         :root {
-            --bg-core: #0f1012;
-            --bg-panel: #18191c;
-            --text-main: #e8eaed;
-            --text-dim: #5f6368;
-            --accent: #8ab4f8;
-            --success: #81c995;
-            --border-radius: 12px;
+            --bg-deep: #05070a;
+            --glass-panel: rgba(20, 25, 40, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --accent-cyan: #64ffda;
+            --accent-glow: rgba(100, 255, 218, 0.4);
+            --text-main: #e6f1ff;
+            --text-dim: #8892b0;
+            --success: #69f0ae;
+            --danger: #ff5252;
         }
 
         body {
-            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--bg-core);
+            font-family: 'Roboto', 'Segoe UI', sans-serif;
+            background-color: var(--bg-deep);
             color: var(--text-main);
             margin: 0;
             display: flex;
             flex-direction: column;
-            min-height: 100vh; /* Changed from height: 100vh to allow scrolling */
+            min-height: 100vh;
             padding: 20px;
             box-sizing: border-box;
-            overflow-y: auto; /* ENABLE SCROLLING */
+            overflow-x: hidden;
+            overflow-y: auto;
+            position: relative;
         }
+
+        /* --- COSMIC BACKGROUND SYSTEM --- */
+        .cosmos {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(to bottom, #020c1b, #0a192f);
+            overflow: hidden;
+        }
+
+        /* Procedural Star Fields */
+        .stars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 2px;
+            height: 2px;
+            border-radius: 50%;
+            box-shadow: 
+                4vw 15vh 1px white, 18vw 35vh 1px white, 44vw 66vh 1px white,
+                90vw 10vh 2px white, 55vw 45vh 1px white, 22vw 88vh 2px white,
+                76vw 12vh 1px white, 12vw 55vh 1px white, 68vw 92vh 1px white,
+                33vw 22vh 2px white, 85vw 75vh 1px white, 50vw 50vh 2px white;
+            animation: drift 100s linear infinite;
+        }
+        
+        .stars:nth-child(2) {
+            width: 1px;
+            height: 1px;
+            opacity: 0.6;
+            box-shadow: 
+                14vw 25vh 1px #a5d8ff, 38vw 15vh 1px #a5d8ff, 64vw 86vh 1px #a5d8ff,
+                20vw 90vh 1px #a5d8ff, 45vw 25vh 1px #a5d8ff, 82vw 38vh 1px #a5d8ff;
+            animation: drift 150s linear infinite reverse;
+        }
+
+        .nebula {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 50% 120%, rgba(29, 78, 216, 0.15), transparent 60%);
+            animation: pulse-glow 8s ease-in-out infinite alternate;
+        }
+
+        @keyframes drift { from { transform: translateY(0); } to { transform: translateY(-100vh); } }
+        @keyframes pulse-glow { from { opacity: 0.5; } to { opacity: 1; } }
 
         /* --- HEADER --- */
         .header {
             display: flex;
             justify-content: center;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             flex-shrink: 0;
         }
 
         h1 {
-            font-size: 1.2rem;
+            font-size: 1.5rem;
             margin: 0;
-            letter-spacing: 2px;
+            letter-spacing: 4px;
             text-transform: uppercase;
-            font-weight: 800;
-            background: linear-gradient(90deg, #fff, #8ab4f8);
+            font-weight: 900;
+            background: linear-gradient(135deg, #fff 0%, var(--accent-cyan) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(100, 255, 218, 0.3);
         }
 
-        /* --- INPUT CONTAINER --- */
-        .input-container {
+        /* --- HOLOGRAPHIC INPUT CONTAINER --- */
+        .input-wrapper {
             position: relative;
             flex: 1;
             display: flex;
             flex-direction: column;
-            min-height: 300px; /* Minimum height for usability */
-            border-radius: var(--border-radius);
-            padding: 2px;
-            background: var(--bg-panel);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            margin-bottom: 20px; /* Space before button */
+            min-height: 350px;
+            margin-bottom: 25px;
+            
+            /* Glassmorphism */
+            background: var(--glass-panel);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
 
-        /* Animated Border */
-        .input-container::before {
+        /* The Event Horizon Border Effect */
+        .input-wrapper::after {
             content: '';
             position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(
-                45deg,
-                transparent,
-                rgba(138, 180, 248, 0.1),
-                rgba(138, 180, 248, 0.6),
-                rgba(138, 180, 248, 0.1),
-                transparent
-            );
-            animation: rotate 6s linear infinite;
-            z-index: 0;
-            opacity: 0.6;
-            pointer-events: none; /* Fix for clicking issues */
-        }
-        
-        @keyframes rotate {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            inset: -1px;
+            border-radius: 16px;
+            padding: 1px;
+            background: linear-gradient(45deg, transparent, var(--accent-cyan), transparent);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0.5;
+            pointer-events: none;
         }
 
         .input-inner {
-            position: relative;
-            z-index: 1;
-            background: var(--bg-panel);
-            border-radius: 10px;
             flex: 1;
             display: flex;
             flex-direction: column;
+            position: relative;
             overflow: hidden;
+            border-radius: 16px;
         }
 
         textarea {
             flex: 1;
-            background-color: transparent;
-            color: #fff;
+            background: transparent;
+            color: var(--text-main);
             border: none;
-            padding: 16px;
-            padding-top: 45px;
+            padding: 20px;
+            padding-top: 50px;
+            font-family: 'Roboto Mono', monospace; /* Monospace for coding feel */
             font-size: 14px;
-            font-family: 'Roboto Mono', monospace;
             line-height: 1.6;
             resize: none;
             outline: none;
-            white-space: pre-wrap;
-            min-height: 200px; /* Ensure text area is always reachable */
+            min-height: 200px;
         }
 
-        /* --- CONTROLS --- */
+        /* Clear Button (HUD Style) */
         #clearBtn {
             position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(255,255,255,0.05);
-            color: var(--text-dim);
-            border: 1px solid rgba(255,255,255,0.1);
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 11px;
+            top: 15px;
+            left: 15px;
+            background: rgba(100, 255, 218, 0.1);
+            color: var(--accent-cyan);
+            border: 1px solid var(--accent-cyan);
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-size: 10px;
             font-weight: 700;
+            letter-spacing: 1px;
             cursor: pointer;
-            z-index: 2;
+            z-index: 10;
+            transition: all 0.3s;
+            text-transform: uppercase;
         }
 
+        #clearBtn:hover {
+            background: var(--accent-cyan);
+            color: #000;
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        /* --- ACTION BUTTON --- */
         .actions {
-            margin-bottom: 20px; /* Space at bottom for scrolling */
+            margin-bottom: 30px;
             flex-shrink: 0;
+            perspective: 1000px;
         }
 
         button.compile-btn {
-            background-color: var(--accent);
-            color: #1a1a1a;
-            border: none;
-            padding: 16px;
-            border-radius: var(--border-radius);
-            font-weight: 800;
-            font-size: 16px;
+            position: relative;
             width: 100%;
-            letter-spacing: 0.5px;
-            box-shadow: 0 4px 15px rgba(138, 180, 248, 0.3);
-            transform: translateZ(0); /* Hardware acceleration */
+            padding: 18px;
+            background: linear-gradient(90deg, #1d4ed8 0%, #2563eb 100%);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.4);
         }
 
-        button.compile-btn:active { transform: scale(0.98); }
+        button.compile-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: 0.5s;
+        }
 
+        button.compile-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(37, 99, 235, 0.6);
+        }
+
+        button.compile-btn:hover::before {
+            left: 100%;
+        }
+
+        button.compile-btn:active {
+            transform: translateY(1px);
+        }
+
+        /* --- STATUS & STEALTH --- */
         .status-bar {
             text-align: center;
-            font-size: 12px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 10px;
             color: var(--text-dim);
-            opacity: 0.7;
-            padding-bottom: 10px;
+            letter-spacing: 1px;
+            opacity: 0.6;
         }
 
         #stealth-clipboard {
@@ -172,28 +252,41 @@
 </head>
 <body>
 
+    <!-- BACKGROUND LAYERS -->
+    <div class="cosmos">
+        <div class="nebula"></div>
+        <div class="stars"></div>
+        <div class="stars"></div>
+        <div class="stars"></div>
+    </div>
+
     <div class="header">
         <h1>ChegGuevara</h1>
     </div>
     
-    <div class="input-container">
+    <div class="input-wrapper">
         <div class="input-inner">
-            <button id="clearBtn" onclick="clearInput()">CLEAR</button>
+            <button id="clearBtn" onclick="clearInput()">INITIALIZE</button>
             <textarea id="inputParams" spellcheck="false" placeholder=""></textarea>
         </div>
     </div>
     
     <div class="actions">
-        <button class="compile-btn" onclick="executePayload()">CONVERT & COPY</button>
+        <button class="compile-btn" onclick="executePayload()">Process Data</button>
     </div>
 
     <div class="status-bar">
-        System Ready &bull; Protected Mode
+        ENCRYPTED CONNECTION // STEALTH ACTIVE
     </div>
 
     <div id="stealth-clipboard" contenteditable="true"></div>
 
 <script>
+    /**
+     * CHEGGUEVARA | COSMIC EDITION
+     * Production Grade v4.1
+     */
+
     const CONFIG = {
         mathTag: 'span',
         mathAttr: 'data-math-type="mhchem"',
@@ -204,6 +297,9 @@
         const field = document.getElementById('inputParams');
         field.value = "";
         field.focus();
+        const btn = document.getElementById('clearBtn');
+        btn.innerText = "CLEARED";
+        setTimeout(() => btn.innerText = "INITIALIZE", 1000);
     }
 
     function executePayload() {
@@ -211,38 +307,46 @@
         const rawInput = inputField.value;
 
         if (!rawInput.trim()) {
-            flashButton("EMPTY INPUT", "#f28b82");
+            flashButton("NO INPUT DETECTED", "var(--danger)");
             return;
         }
 
         try {
+            // Parsing
             const cleanHtml = parseInput(rawInput);
             const clipboardDiv = document.getElementById('stealth-clipboard');
             clipboardDiv.innerHTML = cleanHtml;
 
+            // Selection
             const range = document.createRange();
             range.selectNodeContents(clipboardDiv);
             const selection = window.getSelection();
             selection.removeAllRanges();
             selection.addRange(range);
 
+            // Execution
             const success = document.execCommand('copy');
 
             if (success) {
-                flashButton("COPIED ✅", CONFIG.success);
+                flashButton("PAYLOAD COPIED ✅", "var(--success)");
                 selection.removeAllRanges();
                 clipboardDiv.innerHTML = ""; 
+                
+                // Self-Destruct / Refresh
                 setTimeout(() => { window.location.reload(); }, 1200);
             } else {
-                throw new Error("Blocked");
+                throw new Error("Execution Blocked");
             }
         } catch (err) {
-            flashButton("ERROR", "#f28b82");
-            alert("Clipboard Access Failed.");
+            flashButton("SYSTEM ERROR", "var(--danger)");
+            alert("Clipboard Access Failed. Manual copy required.");
         }
     }
 
+    /* --- PARSING ENGINE (v4.0 Logic) --- */
+    
     function parseInput(input) {
+        // Hygiene Strip
         let text = input
             .replace(/^### Step \d+:\s*/gm, '### ') 
             .replace(/^\([a-z]\) Action\s*$/gmi, '')
@@ -336,15 +440,18 @@
         return clean.trim();
     }
 
-    function flashButton(text, color) {
+    function flashButton(text, bg) {
         const btn = document.querySelector('.compile-btn');
         const originalText = btn.innerText;
-        const originalBg = getComputedStyle(btn).backgroundColor;
+        const originalBg = getComputedStyle(btn).background; // get processed gradient
+        
         btn.innerText = text;
-        if(color) btn.style.backgroundColor = color;
+        btn.style.background = bg;
+        
+        // No revert logic needed as page refreshes, but standard hygiene:
         setTimeout(() => {
             btn.innerText = originalText;
-            btn.style.backgroundColor = originalBg;
+            btn.style.background = originalBg;
         }, 3000);
     }
 </script>
