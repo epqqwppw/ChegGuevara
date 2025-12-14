@@ -6,112 +6,168 @@
     <title>ChegGuevara</title>
     <style>
         :root {
-            --bg-primary: #202124;
-            --bg-secondary: #292a2d;
-            --text-primary: #e8eaed;
-            --text-muted: #9aa0a6;
+            --bg-core: #0f1012;
+            --bg-panel: #18191c;
+            --text-main: #e8eaed;
+            --text-dim: #5f6368;
             --accent: #8ab4f8;
-            --danger: #f28b82;
-            --border: #5f6368;
             --success: #81c995;
+            --border-radius: 12px;
         }
 
         body {
-            font-family: 'Roboto', -apple-system, sans-serif;
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-core);
+            color: var(--text-main);
             margin: 0;
             display: flex;
             flex-direction: column;
             height: 100vh;
-            padding: 16px;
+            padding: 20px;
             box-sizing: border-box;
+            overflow: hidden; /* Prevent scroll bounce */
         }
 
+        /* --- HEADER --- */
         .header {
             display: flex;
             justify-content: center;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: 20px;
         }
 
         h1 {
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             margin: 0;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
             text-transform: uppercase;
-            font-weight: 700;
-            color: var(--accent);
+            font-weight: 800;
+            background: linear-gradient(90deg, #fff, #8ab4f8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        .input-wrapper {
+        /* --- HOLOGRAPHIC INPUT CONTAINER --- */
+        .input-container {
             position: relative;
             flex: 1;
             display: flex;
             flex-direction: column;
+            border-radius: var(--border-radius);
+            padding: 2px; /* Space for the gradient border */
+            overflow: hidden;
+            background: var(--bg-panel);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        /* The Animated Gradient Border */
+        .input-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent,
+                rgba(138, 180, 248, 0.1),
+                rgba(138, 180, 248, 0.6),
+                rgba(138, 180, 248, 0.1),
+                transparent
+            );
+            transform-origin: center;
+            animation: rotate 6s linear infinite;
+            z-index: 0;
+            opacity: 0.6;
+        }
+        
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Inner Content Wrapper (sits on top of animation) */
+        .input-inner {
+            position: relative;
+            z-index: 1;
+            background: var(--bg-panel);
+            border-radius: 10px; /* slightly less than container */
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
         }
 
         textarea {
             flex: 1;
-            background-color: var(--bg-secondary);
+            background-color: transparent;
             color: #fff;
-            border: 1px solid var(--border);
-            border-radius: 12px;
+            border: none;
             padding: 16px;
-            padding-top: 45px;
+            padding-top: 45px; /* space for clear button */
             font-size: 14px;
-            line-height: 1.5;
+            font-family: 'Roboto Mono', monospace;
+            line-height: 1.6;
             resize: none;
             outline: none;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+            white-space: pre-wrap;
         }
 
-        textarea:focus { border-color: var(--accent); }
-
+        /* --- CONTROLS --- */
         #clearBtn {
             position: absolute;
             top: 10px;
             left: 10px;
-            background-color: rgba(255, 255, 255, 0.1);
-            color: var(--text-muted);
-            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.05);
+            color: var(--text-dim);
+            border: 1px solid rgba(255,255,255,0.1);
             padding: 6px 12px;
             border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
+            font-size: 11px;
+            font-weight: 700;
             cursor: pointer;
-            backdrop-filter: blur(4px);
-            z-index: 10;
+            z-index: 2;
+            transition: all 0.2s;
         }
+        
+        #clearBtn:hover { background: rgba(255,255,255,0.1); color: #fff; }
 
         .actions {
-            margin-top: 16px;
-            display: flex;
-            flex-direction: column;
+            margin-top: 20px;
         }
 
         button.compile-btn {
             background-color: var(--accent);
-            color: #202124;
+            color: #1a1a1a;
             border: none;
             padding: 16px;
-            border-radius: 12px;
-            font-weight: 700;
+            border-radius: var(--border-radius);
+            font-weight: 800;
             font-size: 16px;
             width: 100%;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 15px rgba(138, 180, 248, 0.3);
+            transition: transform 0.1s;
         }
 
         button.compile-btn:active { transform: scale(0.98); }
 
-        .tips {
+        .status-bar {
             text-align: center;
             font-size: 12px;
-            color: var(--text-muted);
-            margin-top: 12px;
-            background: rgba(255,255,255,0.05);
-            padding: 10px;
-            border-radius: 8px;
+            color: var(--text-dim);
+            margin-top: 15px;
+            opacity: 0.7;
+        }
+
+        /* --- STEALTH DOM --- */
+        #stealth-clipboard {
+            position: absolute;
+            left: -9999px;
+            top: 0;
+            opacity: 0;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -121,127 +177,232 @@
         <h1>ChegGuevara</h1>
     </div>
     
-    <div class="input-wrapper">
-        <button id="clearBtn" onclick="clearInput()">CLEAR</button>
-        <textarea id="inputParams" placeholder="Paste ChatGPT solution here..."></textarea>
+    <div class="input-container">
+        <div class="input-inner">
+            <button id="clearBtn" onclick="clearInput()">CLEAR</button>
+            <textarea id="inputParams" spellcheck="false" placeholder=""></textarea>
+        </div>
     </div>
     
     <div class="actions">
-        <button class="compile-btn" onclick="processAndCopy()">CONVERT & COPY</button>
+        <button class="compile-btn" onclick="executePayload()">CONVERT & COPY</button>
     </div>
 
-    <div class="tips">
-        <strong>Android Tip:</strong> Long-press inside Chegg editor > Paste.<br>
-        (Do not use Gboard paste)
+    <div class="status-bar">
+        System Ready &bull; Protected Mode
     </div>
 
-    <div id="stealth-clipboard" style="position: absolute; left: -9999px; top: 0;" contenteditable="true"></div>
+    <!-- Hidden Container for Copy Operations -->
+    <div id="stealth-clipboard" contenteditable="true"></div>
 
 <script>
-    const config = {
+    /**
+     * CHEGGUEVARA ENGINE v4.0 (Production)
+     * Optimized for Android Chrome & Account Hygiene.
+     */
+
+    const CONFIG = {
         mathTag: 'span',
         mathAttr: 'data-math-type="mhchem"',
-        // Removing \right only if it's NOT followed by "arrow"
-        unsupported: ['\\mathbf', '\\mathrm', '\\phantom'] 
-        // Note: I removed \\left and \\right from here to handle them manually in the sanitizer
+        // Commands that break Chegg's specific renderer
+        unsafeCommands: ['\\mathbf', '\\mathrm', '\\phantom']
     };
 
+    // --- UI Logic ---
+
     function clearInput() {
-        document.getElementById('inputParams').value = "";
-        document.getElementById('inputParams').focus();
+        const field = document.getElementById('inputParams');
+        field.value = "";
+        field.focus();
     }
 
-    function processAndCopy() {
-        const input = document.getElementById('inputParams').value;
-        if (!input.trim()) return alert("Input is empty.");
+    // --- Core Logic ---
 
-        // 1. PRE-CLEANING
-        let cleanText = input
+    function executePayload() {
+        const inputField = document.getElementById('inputParams');
+        const rawInput = inputField.value;
+
+        if (!rawInput.trim()) {
+            flashButton("EMPTY INPUT", "#f28b82"); // Red warning
+            return;
+        }
+
+        try {
+            // 1. Sanitization & Parsing
+            const cleanHtml = parseInput(rawInput);
+
+            // 2. DOM Injection (Stealth Mode)
+            const clipboardDiv = document.getElementById('stealth-clipboard');
+            clipboardDiv.innerHTML = cleanHtml;
+
+            // 3. Selection Strategy
+            const range = document.createRange();
+            range.selectNodeContents(clipboardDiv);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+            // 4. Execution
+            const success = document.execCommand('copy');
+
+            if (success) {
+                // SUCCESS SEQUENCE
+                flashButton("COPIED ✅", CONFIG.success);
+                
+                // Cleanup
+                selection.removeAllRanges();
+                clipboardDiv.innerHTML = ""; 
+
+                // AUTO-REFRESH (Hygiene)
+                // We wait 1.2s to ensure the user sees the success message, then nuke the session.
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1200);
+
+            } else {
+                throw new Error("Browser blocked copy");
+            }
+
+        } catch (err) {
+            console.error(err);
+            flashButton("ERROR", "#f28b82");
+            alert("Clipboard Access Failed. Please select text manually.");
+        }
+    }
+
+    // --- Parsing Engine ---
+
+    function parseInput(input) {
+        // Step A: Header Removal (Hygiene)
+        let text = input
             .replace(/^### Step \d+:\s*/gm, '### ') 
             .replace(/^\([a-z]\) Action\s*$/gmi, '')
             .replace(/^\([a-z]\) Calculation\s*$/gmi, '')
             .replace(/^\([a-z]\) Explanation\s*$/gmi, '');
 
-        // 2. SEGMENTATION
-        const segments = cleanText.split(/(```latex[\s\S]*?```)/g);
-        let htmlBuffer = "";
+        // Step B: Block Segmentation
+        const segments = text.split(/(```latex[\s\S]*?```)/g);
+        let outputBuffer = "";
 
         segments.forEach(segment => {
             if (segment.startsWith("```latex")) {
+                // LaTeX Block Handling
                 let content = segment.replace(/^```latex\s*/, '').replace(/\s*```$/, '');
                 content = sanitizeLatex(content);
                 
-                htmlBuffer += `
+                // Strict Left Align Container
+                outputBuffer += `
                     <div style="margin-top: 30px; margin-bottom: 10px; text-align: left;">
-                        <${config.mathTag} ${config.mathAttr}>${content}</${config.mathTag}>
+                        <${CONFIG.mathTag} ${CONFIG.mathAttr}>${content}</${CONFIG.mathTag}>
                     </div>`;
             } else {
-                let processed = segment
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/^### (.*$)/gm, '<h3 style="margin: 0; padding-bottom: 4px;">$1</h3>')
-                    .replace(/\$([^$]+?)\$/g, (m, math) => 
-                        `<${config.mathTag} ${config.mathAttr}>${sanitizeLatex(math)}</${config.mathTag}>`
-                    );
-                
-                processed = processed.split('\n\n').map(p => {
-                    if (!p.trim()) return '';
-                    if (p.includes('<h3')) return p;
-                    return `<p style="margin-top: 0; margin-bottom: 1em;">${p.replace(/\n/g, '<br>')}</p>`;
-                }).join('');
-                
-                htmlBuffer += processed;
+                // Text/List Handling
+                outputBuffer += parseTextSegment(segment);
             }
         });
 
-        // 3. STEALTH COPY
-        const hiddenDiv = document.getElementById('stealth-clipboard');
-        hiddenDiv.innerHTML = htmlBuffer;
-        
-        const range = document.createRange();
-        range.selectNodeContents(hiddenDiv);
-        const selection = window.getSelection();
-        selection.removeAllRanges();
-        selection.addRange(range);
-
-        try {
-            document.execCommand('copy');
-            const btn = document.querySelector('.compile-btn');
-            btn.innerText = "COPIED ✅";
-            btn.style.backgroundColor = "var(--success)";
-            setTimeout(() => {
-                btn.innerText = "CONVERT & COPY";
-                btn.style.backgroundColor = "var(--accent)";
-            }, 2000);
-        } catch (err) {
-            alert("Clipboard error: " + err);
-        }
-        selection.removeAllRanges();
+        return outputBuffer;
     }
 
-    /**
-     * UPDATED SANITIZER
-     * Fixes the \rightarrow issue by being careful with \right replacement
-     */
-    function sanitizeLatex(latex) {
-        let clean = latex;
+    function parseTextSegment(segment) {
+        const lines = segment.split('\n');
+        let html = '';
+        let listStack = []; // Stack for nested lists
 
-        // 1. Remove standard unsupported commands safely
-        config.unsupported.forEach(cmd => {
-            clean = clean.split(cmd).join(''); 
+        const closeList = () => {
+            const popped = listStack.pop();
+            html += `</${popped.type}>`;
+        };
+
+        lines.forEach(line => {
+            if (!line.trim()) return;
+
+            // 1. Indent Detection (4 spaces = 1 tab)
+            const indentMatch = line.match(/^(\s*)/);
+            const indentLevel = indentMatch ? indentMatch[1].replace(/\t/g, '    ').length : 0;
+
+            // 2. List Detection
+            const listMatch = line.trim().match(/^([\*\-]|\d+\.)\s+(.*)/);
+
+            if (listMatch) {
+                const marker = listMatch[1];
+                const content = listMatch[2];
+                const type = (marker.includes('.') || /^\d/.test(marker)) ? 'ol' : 'ul';
+
+                // Nested Logic
+                if (listStack.length === 0 || indentLevel > listStack[listStack.length - 1].indent) {
+                    html += `<${type}>`;
+                    listStack.push({ type, indent: indentLevel });
+                } else {
+                    while (listStack.length > 0 && indentLevel < listStack[listStack.length - 1].indent) {
+                        closeList();
+                    }
+                    if (listStack.length > 0 && listStack[listStack.length - 1].type !== type) {
+                        closeList();
+                        html += `<${type}>`;
+                        listStack.push({ type, indent: indentLevel });
+                    }
+                }
+                html += `<li>${formatInline(content)}</li>`;
+
+            } else {
+                // Not a list -> Close all lists
+                while (listStack.length > 0) closeList();
+
+                // Headers & Paragraphs
+                let cleanLine = line.trim();
+                if (cleanLine.startsWith('### ')) {
+                    html += `<h3 style="margin: 0; padding-bottom: 4px;">${cleanLine.replace('### ', '')}</h3>`;
+                } else {
+                    html += `<p style="margin-top: 0; margin-bottom: 1em;">${formatInline(cleanLine)}</p>`;
+                }
+            }
         });
 
-        // 2. Handle \left and \right specifically
-        // We replace \left and \right with empty string ONLY if they are brackets/parentheses logic
-        // But we MUST preserve \rightarrow
-        // Regex Lookahead: Replace \right only if it is NOT followed by 'arrow'
+        while (listStack.length > 0) closeList();
+        return html;
+    }
+
+    // --- Utilities ---
+
+    function formatInline(text) {
+        return text
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            // Match *Italics* safely (avoid bullet conflict)
+            .replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>') 
+            .replace(/\$([^$]+?)\$/g, (m, math) => 
+                `<${CONFIG.mathTag} ${CONFIG.mathAttr}>${sanitizeLatex(math)}</${CONFIG.mathTag}>`
+            );
+    }
+
+    function sanitizeLatex(latex) {
+        let clean = latex;
+        // Strip unsafe commands
+        CONFIG.unsafeCommands.forEach(cmd => { clean = clean.split(cmd).join(''); });
+        // Fix Chegg Arrow/Bracket Conflict
         clean = clean.replace(/\\right(?!arrow)/g, '');
         clean = clean.replace(/\\left/g, '');
-
-        // 3. Escape percentage signs
+        // Escape Percentages
         clean = clean.replace(/(?<!\\)%/g, '\\%');
-
         return clean.trim();
     }
+
+    function flashButton(text, color) {
+        const btn = document.querySelector('.compile-btn');
+        const originalText = btn.innerText;
+        const originalBg = getComputedStyle(btn).backgroundColor;
+
+        btn.innerText = text;
+        if(color) btn.style.backgroundColor = color;
+        
+        // Note: No timeout revert needed here because the page will refresh
+        // But we add one just in case refresh fails
+        setTimeout(() => {
+            btn.innerText = originalText;
+            btn.style.backgroundColor = originalBg;
+        }, 3000);
+    }
+
 </script>
 
 </body>
