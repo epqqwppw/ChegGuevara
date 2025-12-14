@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChegGuevara | Architect</title>
+    <title>ChegGuevara | Cosmic</title>
     <style>
         :root {
             --bg-deep: #05070a;
@@ -269,15 +269,15 @@
     </div>
 
     <div class="status-bar">
-        EQUATION ENGINE: ONLINE // STEALTH: ACTIVE
+        OMNI-PARSER: ONLINE // STEALTH: ACTIVE
     </div>
 
     <div id="stealth-clipboard" contenteditable="true"></div>
 
 <script>
     /**
-     * CHEGGUEVARA v5.1 | Architect Edition
-     * Features: Strict Equation Renderer (align*) output.
+     * CHEGGUEVARA v5.4 | Omni-Parser
+     * Features: Supports raw \begin{align} blocks without backticks
      */
 
     const CONFIG = {
@@ -337,37 +337,46 @@
         // 1. Header Hygiene
         let text = input
             .replace(/^### Step \d+:\s*/gm, '### ') 
-            .replace(/^\([a-z]\) Action\s*$/gmi, '')
-            .replace(/^\([a-z]\) Calculation\s*$/gmi, '')
-            .replace(/^\([a-z]\) Explanation\s*$/gmi, '');
+            .replace(/^\s*[\*]*\([a-z]\) Action[\*]*\s*$/gmi, '')
+            .replace(/^\s*[\*]*\([a-z]\) Calculation[\*]*\s*$/gmi, '')
+            .replace(/^\s*[\*]*\([a-z]\) Explanation[\*]*\s*$/gmi, '');
 
-        // 2. Advanced Segmentation (Matches ```latex AND $$ blocks)
-        const splitRegex = /((?:```latex[\s\S]*?```)|(?:\$\$[\s\S]*?\$\$))/g;
+        // 2. Omni-Segmentation
+        // Captures: 
+        // 1. ```latex ... ```
+        // 2. $$ ... $$
+        // 3. Raw \begin{align*} ... \end{align*} (with or without star)
+        const splitRegex = /((?:```latex[\s\S]*?```)|(?:\$\$[\s\S]*?\$\$)|(?:\\begin\{align\*?\}[\s\S]*?\\end\{align\*?\}))/g;
         
         const segments = text.split(splitRegex);
         let outputBuffer = "";
 
         segments.forEach(segment => {
-            // DETECT CALCULATION BLOCKS
-            if (segment.startsWith("```latex") || segment.startsWith("$$")) {
-                let content = segment
-                    .replace(/^```latex\s*/, '').replace(/\s*```$/, '')
-                    .replace(/^\$\$\s*/, '').replace(/\s*\$\$$/, '');
+            // DETECT MATH BLOCKS
+            const isCodeBlock = segment.startsWith("```latex");
+            const isDoubleDollar = segment.startsWith("$$");
+            const isRawAlign = segment.match(/^\\begin\{align\*?\}/);
+
+            if (isCodeBlock || isDoubleDollar || isRawAlign) {
+                let content = segment;
+                
+                // Strip wrappers if present
+                if(isCodeBlock) content = content.replace(/^```latex\s*/, '').replace(/\s*```$/, '');
+                if(isDoubleDollar) content = content.replace(/^\$\$\s*/, '').replace(/\s*\$\$$/, '');
                 
                 content = sanitizeLatex(content);
 
                 // --- EQUATION RENDERER LOGIC ---
-                // Convert to \begin{align*} block if it's not already
+                // If it's not already an align block, make it one
                 if (!content.includes('\\begin{')) {
                     content = convertToAlignBlock(content);
                 }
 
-                // USE <P> TAG instead of <DIV> for Chegg Editor Compatibility
-                // This mimics the native paragraph structure required by the Equation tool
+                // IMPROVED SPACING
                 outputBuffer += `
-                    <p style="text-align: left; margin-top: 1.5em; margin-bottom: 1.5em;">
+                    <div style="text-align: left; margin-top: 25px; margin-bottom: 25px;">
                         <${CONFIG.mathTag} ${CONFIG.mathAttr}>${content}</${CONFIG.mathTag}>
-                    </p>`;
+                    </div>`;
             } 
             else {
                 outputBuffer += parseTextSegment(segment);
@@ -376,10 +385,6 @@
         return outputBuffer;
     }
 
-    /**
-     * Converts raw multi-line equations into \begin{align*} ... \end{align*}
-     * This format is EXACTLY what the Chegg Equation Renderer produces.
-     */
     function convertToAlignBlock(rawContent) {
         const lines = rawContent.split('\n');
         let alignedLines = lines.map(line => {
@@ -403,6 +408,7 @@
         const lines = segment.split('\n');
         let html = '';
         let listStack = [];
+        let gapDetected = false;
 
         const closeList = () => {
             const popped = listStack.pop();
@@ -410,12 +416,17 @@
         };
 
         lines.forEach(line => {
-            if (!line.trim()) return;
+            if (!line.trim()) {
+                gapDetected = true;
+                return;
+            }
 
             const indentMatch = line.match(/^(\s*)/);
             const indentLevel = indentMatch ? indentMatch[1].replace(/\t/g, '    ').length : 0;
             const listMatch = line.trim().match(/^([\*\-]|\d+\.)\s+(.*)/);
 
+            const topMargin = gapDetected ? '1.5em' : '0';
+            
             if (listMatch) {
                 const marker = listMatch[1];
                 const content = listMatch[2];
@@ -435,16 +446,18 @@
                     }
                 }
                 html += `<li>${formatInline(content)}</li>`;
+                gapDetected = false;
             } else {
                 while (listStack.length > 0) closeList();
                 let cleanLine = line.trim();
                 
                 if (cleanLine.startsWith('### ')) {
                     const headerContent = cleanLine.replace('### ', '');
-                    html += `<h3 style="margin: 0; padding-bottom: 4px;">${formatInline(headerContent)}</h3>`;
+                    html += `<h3 style="margin: 0; padding-bottom: 4px; padding-top: ${gapDetected ? '20px' : '10px'}">${formatInline(headerContent)}</h3>`;
                 } else {
-                    html += `<p style="margin-top: 0; margin-bottom: 1em;">${formatInline(cleanLine)}</p>`;
+                    html += `<p style="margin-top: ${topMargin}; margin-bottom: 1em;">${formatInline(cleanLine)}</p>`;
                 }
+                gapDetected = false;
             }
         });
 
@@ -463,7 +476,9 @@
 
     function sanitizeLatex(latex) {
         let clean = latex;
+        // Strip unsafe commands that break Chegg
         CONFIG.unsafeCommands.forEach(cmd => { clean = clean.split(cmd).join(''); });
+        
         clean = clean.replace(/\\right(?!arrow)/g, '');
         clean = clean.replace(/\\left/g, '');
         clean = clean.replace(/(?<!\\)%/g, '\\%');
