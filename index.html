@@ -22,10 +22,10 @@
             margin: 0;
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            min-height: 100vh; /* Changed from height: 100vh to allow scrolling */
             padding: 20px;
             box-sizing: border-box;
-            overflow: hidden; /* Prevent scroll bounce */
+            overflow-y: auto; /* ENABLE SCROLLING */
         }
 
         /* --- HEADER --- */
@@ -34,6 +34,7 @@
             justify-content: center;
             align-items: center;
             margin-bottom: 20px;
+            flex-shrink: 0;
         }
 
         h1 {
@@ -47,20 +48,21 @@
             -webkit-text-fill-color: transparent;
         }
 
-        /* --- HOLOGRAPHIC INPUT CONTAINER --- */
+        /* --- INPUT CONTAINER --- */
         .input-container {
             position: relative;
             flex: 1;
             display: flex;
             flex-direction: column;
+            min-height: 300px; /* Minimum height for usability */
             border-radius: var(--border-radius);
-            padding: 2px; /* Space for the gradient border */
-            overflow: hidden;
+            padding: 2px;
             background: var(--bg-panel);
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            margin-bottom: 20px; /* Space before button */
         }
 
-        /* The Animated Gradient Border */
+        /* Animated Border */
         .input-container::before {
             content: '';
             position: absolute;
@@ -76,10 +78,10 @@
                 rgba(138, 180, 248, 0.1),
                 transparent
             );
-            transform-origin: center;
             animation: rotate 6s linear infinite;
             z-index: 0;
             opacity: 0.6;
+            pointer-events: none; /* Fix for clicking issues */
         }
         
         @keyframes rotate {
@@ -87,16 +89,15 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Inner Content Wrapper (sits on top of animation) */
         .input-inner {
             position: relative;
             z-index: 1;
             background: var(--bg-panel);
-            border-radius: 10px; /* slightly less than container */
+            border-radius: 10px;
             flex: 1;
             display: flex;
             flex-direction: column;
-            height: 100%;
+            overflow: hidden;
         }
 
         textarea {
@@ -105,13 +106,14 @@
             color: #fff;
             border: none;
             padding: 16px;
-            padding-top: 45px; /* space for clear button */
+            padding-top: 45px;
             font-size: 14px;
             font-family: 'Roboto Mono', monospace;
             line-height: 1.6;
             resize: none;
             outline: none;
             white-space: pre-wrap;
+            min-height: 200px; /* Ensure text area is always reachable */
         }
 
         /* --- CONTROLS --- */
@@ -128,13 +130,11 @@
             font-weight: 700;
             cursor: pointer;
             z-index: 2;
-            transition: all 0.2s;
         }
-        
-        #clearBtn:hover { background: rgba(255,255,255,0.1); color: #fff; }
 
         .actions {
-            margin-top: 20px;
+            margin-bottom: 20px; /* Space at bottom for scrolling */
+            flex-shrink: 0;
         }
 
         button.compile-btn {
@@ -148,7 +148,7 @@
             width: 100%;
             letter-spacing: 0.5px;
             box-shadow: 0 4px 15px rgba(138, 180, 248, 0.3);
-            transition: transform 0.1s;
+            transform: translateZ(0); /* Hardware acceleration */
         }
 
         button.compile-btn:active { transform: scale(0.98); }
@@ -157,11 +157,10 @@
             text-align: center;
             font-size: 12px;
             color: var(--text-dim);
-            margin-top: 15px;
             opacity: 0.7;
+            padding-bottom: 10px;
         }
 
-        /* --- STEALTH DOM --- */
         #stealth-clipboard {
             position: absolute;
             left: -9999px;
@@ -192,23 +191,14 @@
         System Ready &bull; Protected Mode
     </div>
 
-    <!-- Hidden Container for Copy Operations -->
     <div id="stealth-clipboard" contenteditable="true"></div>
 
 <script>
-    /**
-     * CHEGGUEVARA ENGINE v4.0 (Production)
-     * Optimized for Android Chrome & Account Hygiene.
-     */
-
     const CONFIG = {
         mathTag: 'span',
         mathAttr: 'data-math-type="mhchem"',
-        // Commands that break Chegg's specific renderer
         unsafeCommands: ['\\mathbf', '\\mathrm', '\\phantom']
     };
-
-    // --- UI Logic ---
 
     function clearInput() {
         const field = document.getElementById('inputParams');
@@ -216,98 +206,71 @@
         field.focus();
     }
 
-    // --- Core Logic ---
-
     function executePayload() {
         const inputField = document.getElementById('inputParams');
         const rawInput = inputField.value;
 
         if (!rawInput.trim()) {
-            flashButton("EMPTY INPUT", "#f28b82"); // Red warning
+            flashButton("EMPTY INPUT", "#f28b82");
             return;
         }
 
         try {
-            // 1. Sanitization & Parsing
             const cleanHtml = parseInput(rawInput);
-
-            // 2. DOM Injection (Stealth Mode)
             const clipboardDiv = document.getElementById('stealth-clipboard');
             clipboardDiv.innerHTML = cleanHtml;
 
-            // 3. Selection Strategy
             const range = document.createRange();
             range.selectNodeContents(clipboardDiv);
             const selection = window.getSelection();
             selection.removeAllRanges();
             selection.addRange(range);
 
-            // 4. Execution
             const success = document.execCommand('copy');
 
             if (success) {
-                // SUCCESS SEQUENCE
                 flashButton("COPIED ✅", CONFIG.success);
-                
-                // Cleanup
                 selection.removeAllRanges();
                 clipboardDiv.innerHTML = ""; 
-
-                // AUTO-REFRESH (Hygiene)
-                // We wait 1.2s to ensure the user sees the success message, then nuke the session.
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1200);
-
+                setTimeout(() => { window.location.reload(); }, 1200);
             } else {
-                throw new Error("Browser blocked copy");
+                throw new Error("Blocked");
             }
-
         } catch (err) {
-            console.error(err);
             flashButton("ERROR", "#f28b82");
-            alert("Clipboard Access Failed. Please select text manually.");
+            alert("Clipboard Access Failed.");
         }
     }
 
-    // --- Parsing Engine ---
-
     function parseInput(input) {
-        // Step A: Header Removal (Hygiene)
         let text = input
             .replace(/^### Step \d+:\s*/gm, '### ') 
             .replace(/^\([a-z]\) Action\s*$/gmi, '')
             .replace(/^\([a-z]\) Calculation\s*$/gmi, '')
             .replace(/^\([a-z]\) Explanation\s*$/gmi, '');
 
-        // Step B: Block Segmentation
         const segments = text.split(/(```latex[\s\S]*?```)/g);
         let outputBuffer = "";
 
         segments.forEach(segment => {
             if (segment.startsWith("```latex")) {
-                // LaTeX Block Handling
                 let content = segment.replace(/^```latex\s*/, '').replace(/\s*```$/, '');
                 content = sanitizeLatex(content);
-                
-                // Strict Left Align Container
                 outputBuffer += `
                     <div style="margin-top: 30px; margin-bottom: 10px; text-align: left;">
                         <${CONFIG.mathTag} ${CONFIG.mathAttr}>${content}</${CONFIG.mathTag}>
                     </div>`;
             } else {
-                // Text/List Handling
                 outputBuffer += parseTextSegment(segment);
             }
         });
-
         return outputBuffer;
     }
 
     function parseTextSegment(segment) {
         const lines = segment.split('\n');
         let html = '';
-        let listStack = []; // Stack for nested lists
+        let listStack = [];
 
         const closeList = () => {
             const popped = listStack.pop();
@@ -317,11 +280,8 @@
         lines.forEach(line => {
             if (!line.trim()) return;
 
-            // 1. Indent Detection (4 spaces = 1 tab)
             const indentMatch = line.match(/^(\s*)/);
             const indentLevel = indentMatch ? indentMatch[1].replace(/\t/g, '    ').length : 0;
-
-            // 2. List Detection
             const listMatch = line.trim().match(/^([\*\-]|\d+\.)\s+(.*)/);
 
             if (listMatch) {
@@ -329,7 +289,6 @@
                 const content = listMatch[2];
                 const type = (marker.includes('.') || /^\d/.test(marker)) ? 'ol' : 'ul';
 
-                // Nested Logic
                 if (listStack.length === 0 || indentLevel > listStack[listStack.length - 1].indent) {
                     html += `<${type}>`;
                     listStack.push({ type, indent: indentLevel });
@@ -344,12 +303,8 @@
                     }
                 }
                 html += `<li>${formatInline(content)}</li>`;
-
             } else {
-                // Not a list -> Close all lists
                 while (listStack.length > 0) closeList();
-
-                // Headers & Paragraphs
                 let cleanLine = line.trim();
                 if (cleanLine.startsWith('### ')) {
                     html += `<h3 style="margin: 0; padding-bottom: 4px;">${cleanLine.replace('### ', '')}</h3>`;
@@ -363,12 +318,9 @@
         return html;
     }
 
-    // --- Utilities ---
-
     function formatInline(text) {
         return text
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            // Match *Italics* safely (avoid bullet conflict)
             .replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>') 
             .replace(/\$([^$]+?)\$/g, (m, math) => 
                 `<${CONFIG.mathTag} ${CONFIG.mathAttr}>${sanitizeLatex(math)}</${CONFIG.mathTag}>`
@@ -377,12 +329,9 @@
 
     function sanitizeLatex(latex) {
         let clean = latex;
-        // Strip unsafe commands
         CONFIG.unsafeCommands.forEach(cmd => { clean = clean.split(cmd).join(''); });
-        // Fix Chegg Arrow/Bracket Conflict
         clean = clean.replace(/\\right(?!arrow)/g, '');
         clean = clean.replace(/\\left/g, '');
-        // Escape Percentages
         clean = clean.replace(/(?<!\\)%/g, '\\%');
         return clean.trim();
     }
@@ -391,18 +340,13 @@
         const btn = document.querySelector('.compile-btn');
         const originalText = btn.innerText;
         const originalBg = getComputedStyle(btn).backgroundColor;
-
         btn.innerText = text;
         if(color) btn.style.backgroundColor = color;
-        
-        // Note: No timeout revert needed here because the page will refresh
-        // But we add one just in case refresh fails
         setTimeout(() => {
             btn.innerText = originalText;
             btn.style.backgroundColor = originalBg;
         }, 3000);
     }
-
 </script>
 
 </body>
